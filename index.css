@@ -1,0 +1,210 @@
+/* RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0d1117;
+  color: #e5e7eb;
+  font-family: system-ui, sans-serif;
+  min-height: 100vh;
+  overflow: hidden; /* Prevent full page scroll */
+}
+
+/* HEADER */
+header {
+  background: #111827;
+  padding: 12px 30px;
+  border-bottom: 1px solid #1f2937;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 10;
+}
+.branding {
+  font-family: "Monolisa", monospace;
+  font-size: 1rem;
+  color: #38bdf8;
+}
+
+/* PAGE WRAPPER – SIDEBAR & MAIN */
+.wrapper {
+  display: flex;
+  height: calc(100vh - 50px); /* full height excluding header */
+  margin-top: 50px; /* push down from header */
+  overflow: hidden; /* prevent full page scrolling */
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 260px;
+  background: #161b22;
+  border-right: 1px solid #1f2937;
+  padding: 20px;
+  overflow-y: auto; /* Scroll saved playlists if too long */
+}
+
+.sidebar h3 {
+  margin-bottom: 15px;
+  color: #38bdf8;
+}
+
+.saved-playlist-item {
+  background: #1e293b;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.saved-playlist-item:hover {
+  background: #334155;
+}
+.pl-title {
+  flex: 1;
+  font-weight: 500;
+  color: #f3f4f6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.open-saved-btn {
+  padding: 6px 10px;
+  background: #2563eb;
+  border: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.open-saved-btn:hover {
+  background: #1d4ed8;
+}
+
+/* MAIN CONTENT */
+.main-content {
+  flex: 1;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden; /* BLOCKS scrolling */
+}
+
+.page-title {
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 25px;
+}
+
+/* PLAYLIST INPUT CARD */
+.form-card {
+  background: #161b22;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #1f2937;
+  max-width: 600px;
+  margin: auto;
+  flex-shrink: 0; /* PREVENT scroll behavior */
+}
+
+#playlistInput {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  color: white;
+}
+#playlistInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+/* BUTTON ROW */
+.btn-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 15px;
+}
+.btn-main, .btn-secondary {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: 0.25s;
+}
+.btn-main {
+  background: #2563eb;
+  color: white;
+}
+.btn-main:hover {
+  background: #1d4ed8;
+}
+.btn-secondary {
+  background: #374151;
+  color: white;
+}
+.btn-secondary:hover {
+  background: #4b5563;
+}
+
+/* LECTURES LIST – ONLY THIS SCROLLS */
+#results {
+  flex-grow: 1;         /* Ensures it fills remaining space */
+  overflow-y: auto;     /* Enables scrolling */
+  margin-top: 25px;
+  padding-right: 10px;  /* Avoid scrollbar overlay */
+  max-height: 100%;
+}
+
+.video-item {
+  padding: 14px;
+  background: #1e293b;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  transition: 0.2s;
+}
+.video-item:hover {
+  background: #334155;
+}
+.play-btn {
+  padding: 6px 10px;
+  background: #2563eb;
+  border: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.play-btn:hover {
+  background: #1d4ed8;
+}
+.btn-group {
+  display: flex;
+  gap: 8px;
+}
+
+.delete-btn {
+  padding: 6px 10px;
+  background: #dc2626;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.delete-btn:hover {
+  background: #b91c1c;
+}

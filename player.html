@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lecture Player</title>
+  <link rel="stylesheet" href="player.css">  <!-- External CSS -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+  <!-- LEFT PLAYLIST -->
+  <div class="sidebar">
+    <div class="sidebar-header">Playlist</div>
+    <div class="list" id="playlistList"></div>
+  </div>
+
+  <!-- RIGHT VIDEO SECTION -->
+  <div class="player-area" id="playerArea">
+
+    <div class="top-bar">
+      <div class="title" id="videoTitle">Loading...</div>
+      <button class="btn" onclick="window.close()">Close Tab</button>
+    </div>
+
+    <div class="frame-wrap">
+      <iframe id="playerFrame" allowfullscreen></iframe>
+    </div>
+
+    <!-- Toggle Doubt Button -->
+    <button id="toggleDoubtBtn">▼ Show Doubt Section</button>
+
+    <!-- DOUBT SECTION -->
+    <div class="doubt-section">
+      <h3>Ask Your Doubt</h3>
+      <textarea id="doubtInput" placeholder="Type your question here..."></textarea>
+      <button class="btn" onclick="sendDoubt()">Ask</button>
+      <div id="doubtResponse"></div>
+    </div>
+
+  </div>
+
+  <script src="player.js"></script> <!-- External JavaScript -->
+</body>
+</html>
