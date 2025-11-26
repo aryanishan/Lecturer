@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YouTube Playlist Lectures Viewer</title>
   <link rel="stylesheet" href="index.css">
 </head>
@@ -26,11 +27,12 @@
       <h1 class="page-title">YouTube Playlist Lectures</h1>
 
       <div class="form-card">
-        <input id="playlistInput" placeholder="Paste playlist link..." />
+        <input id="playlistInput" placeholder="Paste playlist link or playlist ID..." />
 
         <div class="btn-row">
           <button id="loadBtn" class="btn-main">Load Lectures</button>
-          <button id="saveBtn" class="btn-secondary">Save Playlist</button>
+          <button id="clearBtn" class="btn-secondary" style="display:none;">✖ Clear</button>
+          <button id="saveBtn" class="btn-secondary" style="display:none;">Save Playlist</button>
         </div>
 
         <div id="status"></div>

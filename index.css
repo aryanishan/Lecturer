@@ -10,7 +10,7 @@ body {
   color: #e5e7eb;
   font-family: system-ui, sans-serif;
   min-height: 100vh;
-  overflow: hidden; /* Prevent full page scroll */
+  overflow: hidden;
 }
 
 /* HEADER */
@@ -25,17 +25,15 @@ header {
   z-index: 10;
 }
 .branding {
-  font-family: "Monolisa", monospace;
   font-size: 1rem;
   color: #38bdf8;
 }
 
-/* PAGE WRAPPER – SIDEBAR & MAIN */
+/* PAGE WRAPPER */
 .wrapper {
   display: flex;
-  height: calc(100vh - 50px); /* full height excluding header */
-  margin-top: 50px; /* push down from header */
-  overflow: hidden; /* prevent full page scrolling */
+  height: calc(100vh - 50px);
+  margin-top: 50px;
 }
 
 /* SIDEBAR */
@@ -44,7 +42,7 @@ header {
   background: #161b22;
   border-right: 1px solid #1f2937;
   padding: 20px;
-  overflow-y: auto; /* Scroll saved playlists if too long */
+  overflow-y: auto;
 }
 
 .sidebar h3 {
@@ -52,48 +50,95 @@ header {
   color: #38bdf8;
 }
 
+/* PLAYLIST CARD */
 .saved-playlist-item {
-  background: #1e293b;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #1e293b, #2e3948);
+  padding: 14px;
+  margin-bottom: 12px;
+  border-radius: 10px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  transition: 0.2s;
+  flex-direction: column;
+  gap: 10px;
+  transition: 0.25s ease;
+  border: 1px solid #263043;
 }
 .saved-playlist-item:hover {
-  background: #334155;
+  background: #304054;
+  transform: scale(1.02);
 }
+
 .pl-title {
-  flex: 1;
   font-weight: 500;
   color: #f3f4f6;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.open-saved-btn {
-  padding: 6px 10px;
-  background: #2563eb;
-  border: none;
-  color: white;
+
+/* PROGRESS BAR (SIDEBAR CARD) */
+.progress-container {
+  width: 100%;
+  background: #1f2937;
+  height: 8px;
   border-radius: 6px;
-  cursor: pointer;
+  overflow: hidden;
 }
-.open-saved-btn:hover {
-  background: #1d4ed8;
+.progress-bar {
+  height: 8px;
+  width: 0%;
+  background: #22c55e;
+  border-radius: 6px;
+  transition: width 0.3s ease;
 }
 
-/* MAIN CONTENT */
+.progress-text {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #a1a1aa;
+  margin-top: 2px;
+}
+
+/* BUTTONS IN SIDEBAR CARD */
+.btn-group {
+  display: flex;
+  gap: 8px;
+}
+
+.open-saved-btn,
+.delete-btn {
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: 0.25s ease-in-out;
+}
+
+.open-saved-btn {
+  background: #2563eb;
+  color: white;
+}
+.open-saved-btn:hover {
+  background: #1e40af;
+}
+
+.delete-btn {
+  background: #dc2626;
+  color: white;
+}
+.delete-btn:hover {
+  background: #b91c1c;
+}
+
+/* MAIN CONTENT AREA */
 .main-content {
   flex: 1;
   padding: 40px;
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden; /* BLOCKS scrolling */
+  overflow: hidden;
 }
 
 .page-title {
@@ -103,15 +148,16 @@ header {
   margin-bottom: 25px;
 }
 
-/* PLAYLIST INPUT CARD */
+/* INPUT CARD */
 .form-card {
   background: #161b22;
   padding: 25px;
   border-radius: 12px;
   border: 1px solid #1f2937;
   max-width: 600px;
-  margin: auto;
-  flex-shrink: 0; /* PREVENT scroll behavior */
+  margin: 0 auto;
+  flex-shrink: 0;
+  text-align: center;
 }
 
 #playlistInput {
@@ -127,21 +173,25 @@ header {
   border-color: #3b82f6;
 }
 
-/* BUTTON ROW */
+/* FORM BUTTONS */
 .btn-row {
   display: flex;
   gap: 12px;
   margin-top: 15px;
+  justify-content: center;
 }
-.btn-main, .btn-secondary {
-  flex: 1;
-  padding: 12px 14px;
+
+.btn-main,
+.btn-secondary {
+  padding: 10px 16px;
   border-radius: 8px;
   border: none;
   cursor: pointer;
   font-size: 1rem;
-  transition: 0.25s;
+  font-weight: 500;
+  transition: 0.25s ease;
 }
+
 .btn-main {
   background: #2563eb;
   color: white;
@@ -157,54 +207,56 @@ header {
   background: #4b5563;
 }
 
-/* LECTURES LIST – ONLY THIS SCROLLS */
+/* STATUS TEXT */
+#status {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: #d1d5db;
+}
+
+/* LECTURE LIST */
 #results {
-  flex-grow: 1;         /* Ensures it fills remaining space */
-  overflow-y: auto;     /* Enables scrolling */
+  flex-grow: 1;
+  overflow-y: auto;
+  max-height: 70vh;
   margin-top: 25px;
-  padding-right: 10px;  /* Avoid scrollbar overlay */
-  max-height: 100%;
+  padding-right: 10px;
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .video-item {
-  padding: 14px;
-  background: #1e293b;
-  margin-bottom: 8px;
-  border-radius: 10px;
-  cursor: pointer;
+  padding: 10px 12px;
   display: flex;
   justify-content: space-between;
-  transition: 0.2s;
+  align-items: center;
+  border-bottom: 1px solid #2c3440;
+  cursor: pointer;
+}
+.video-item span {
+  flex: 1;
+  margin-right: 12px;
 }
 .video-item:hover {
-  background: #334155;
+  background: #1f2937;
 }
+
 .play-btn {
-  padding: 6px 10px;
   background: #2563eb;
-  border: none;
   color: white;
-  border-radius: 6px;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
   cursor: pointer;
+  font-size: 0.85rem;
 }
 .play-btn:hover {
   background: #1d4ed8;
 }
-.btn-group {
-  display: flex;
-  gap: 8px;
-}
 
-.delete-btn {
-  padding: 6px 10px;
-  background: #dc2626;
-  border: none;
-  border-radius: 8px;
-  color: white;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.delete-btn:hover {
-  background: #b91c1c;
+/* EMPTY MESSAGE */
+.empty-message {
+  font-size: 0.85rem;
+  color: #9ca3af;
 }

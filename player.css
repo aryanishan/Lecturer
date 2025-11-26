@@ -1,4 +1,5 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
   height: 100vh;
   display: flex;
@@ -41,11 +42,14 @@ body {
   overflow-y: auto;
   background: radial-gradient(circle at top, #0b1120, #020617);
 }
+
+/* TOP BAR */
 .top-bar {
-  padding: 14px 18px;
-  border-bottom: 1px solid #1f2937;
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid #1f2937;
   position: sticky;
   top: 0;
   background: #0b1120;
@@ -57,6 +61,37 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 70%;
+}
+
+/* Buttons */
+.btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: 0.25s ease-in-out;
+}
+.btn:hover { background: #1e40af; }
+
+/* PROGRESS BAR BELOW TOP BAR */
+.progress-wrap {
+  padding: 8px 18px;
+}
+#playerProgressBar {
+  height: 8px;
+  width: 0%;
+  background: #22c55e;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+#playerProgressText {
+  text-align: center;
+  font-size: 0.8rem;
+  margin-top: 4px;
+  color: #a1a1aa;
 }
 
 /* VIDEO */
@@ -73,7 +108,7 @@ iframe {
   border: none;
 }
 
-/* Doubt Section Toggle */
+/* Doubt Section */
 #toggleDoubtBtn {
   background: #1f2937;
   color: white;
@@ -86,7 +121,6 @@ iframe {
 }
 #toggleDoubtBtn:hover { background: #374151; }
 
-/* Doubt Section */
 .doubt-section {
   display: none;
   opacity: 0;
@@ -97,10 +131,7 @@ iframe {
   flex-direction: column;
   gap: 10px;
 }
-.doubt-section.open {
-  display: flex;
-  opacity: 1;
-}
+.doubt-section.open { display: flex; opacity: 1; }
 
 #doubtInput {
   width: 100%;
