@@ -1,48 +1,12 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YouTube Playlist Lectures Viewer</title>
-  <link rel="stylesheet" href="index.css">
-</head>
-<body>
-
-  <!-- HEADER -->
-  <header>
-    <div class="branding">Developed by Aryan</div>
-  </header>
-
-  <!-- PAGE WRAPPER (SIDEBAR + MAIN CONTENT) -->
-  <div class="wrapper">
-
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-      <h3>Saved Playlists</h3>
-      <ul id="savedList"></ul>
-    </aside>
-
-    <!-- MAIN SECTION -->
-    <main class="main-content">
-      <h1 class="page-title">YouTube Playlist Lectures</h1>
-
-      <div class="form-card">
-        <input id="playlistInput" placeholder="Paste playlist link or playlist ID..." />
-
-        <div class="btn-row">
-          <button id="loadBtn" class="btn-main">Load Lectures</button>
-          <button id="clearBtn" class="btn-secondary" style="display:none;">✖ Clear</button>
-          <button id="saveBtn" class="btn-secondary" style="display:none;">Save Playlist</button>
-        </div>
-
-        <div id="status"></div>
-      </div>
-
-      <div id="results"></div>
-    </main>
-
-  </div>
-
-  <script src="index.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouTube Playlist Lectures Viewer</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
