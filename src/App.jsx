@@ -5,13 +5,17 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  CircleHelp,
   Home,
   ListVideo,
   Loader2,
-  MessageSquare,
+  Menu,
+  Moon,
   Play,
+  Plus,
   Save,
   Send,
+  Sun,
   Trash2,
   X,
 } from "lucide-react";
@@ -38,18 +42,61 @@ import {
 } from "./utils/storage";
 
 const cx = (...classes) => classes.filter(Boolean).join(" ");
+const THEME_KEY = "lecture-viewer-theme";
+
+function useTheme() {
+  const [theme, setTheme] = useState(() => {
+    const stored = window.localStorage.getItem(THEME_KEY);
+    return stored === "dark" || stored === "light"
+      ? stored
+      : window.matchMedia?.("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+  });
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
+  return [
+    theme,
+    () => setTheme((current) => (current === "dark" ? "light" : "dark")),
+  ];
+}
 
 function App() {
+  const [theme, toggleTheme] = useTheme();
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/player" element={<PlayerPage />} />
+      <Route
+        path="/"
+        element={<HomePage theme={theme} onToggleTheme={toggleTheme} />}
+      />
+      <Route
+        path="/player"
+        element={<PlayerPage theme={theme} onToggleTheme={toggleTheme} />}
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
-function HomePage() {
+function ThemeToggle({ theme, onToggle }) {
+  const isDark = theme === "dark";
+  return (
+    <button
+      type="button"
+      className="theme-toggle"
+      onClick={onToggle}
+      aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
+      title={`Switch to ${isDark ? "light" : "dark"} mode`}
+    >
+      {isDark ? <Sun size={17} /> : <Moon size={17} />}
+      <span>{isDark ? "Light" : "Dark"}</span>
+    </button>
+  );
+}
+
+function HomePage({ theme, onToggleTheme }) {
   const [playlistInput, setPlaylistInput] = useState("");
   const [currentPlaylist, setCurrentPlaylistState] = useState(null);
   const [loadedRawInput, setLoadedRawInput] = useState("");
@@ -57,216 +104,219 @@ function HomePage() {
   const [savedPlaylists, setSavedPlaylistsState] = useState(() =>
     getSavedPlaylists(),
   );
-  const [status, setStatus] = useState({
-    tone: "muted",
-    message: "",
-  });
+  const [status, setStatus] = useState({ tone: "muted", message: "" });
   const [isLoading, setIsLoading] = useState(false);
-
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const inputMatchesLoaded =
     currentPlaylist && playlistInput.trim() === loadedRawInput;
 
   useEffect(() => {
-    const refreshSavedPlaylists = () => {
+    const refreshSavedPlaylists = () =>
       setSavedPlaylistsState(getSavedPlaylists());
-    };
-
     window.addEventListener("focus", refreshSavedPlaylists);
     document.addEventListener("visibilitychange", refreshSavedPlaylists);
-
     return () => {
       window.removeEventListener("focus", refreshSavedPlaylists);
       document.removeEventListener("visibilitychange", refreshSavedPlaylists);
     };
   }, []);
-
   async function handleLoadLectures() {
     if (inputMatchesLoaded) {
       setLecturesVisible((visible) => !visible);
       return;
     }
-
     const raw = playlistInput.trim();
     if (!raw) {
       setStatus({
         tone: "error",
-        message: "Please paste playlist link or ID.",
+        message: "Paste a playlist link or ID to begin.",
       });
       return;
     }
-
     const playlistId = extractPlaylistId(raw);
     if (!playlistId) {
       setStatus({
         tone: "error",
-        message: "Invalid playlist link or ID.",
+        message: "That playlist link or ID doesn't look right.",
       });
       return;
     }
-
     setIsLoading(true);
-    setStatus({ tone: "muted", message: "Loading playlist..." });
-
+    setStatus({ tone: "muted", message: "Fetching your lectures…" });
     try {
       const [videos, playlistTitle] = await Promise.all([
         fetchPlaylistVideos(playlistId),
         fetchPlaylistTitle(playlistId),
       ]);
-
-      const playlist = {
-        playlistId,
-        playlistTitle,
-        videos,
-      };
-
+      const playlist = { playlistId, playlistTitle, videos };
       setCurrentPlaylist(playlist);
       setCurrentPlaylistState(playlist);
       setLoadedRawInput(raw);
       setLecturesVisible(true);
       setStatus({
         tone: "success",
-        message: `Loaded ${videos.length} videos.`,
+        message: `${videos.length} lectures are ready to study.`,
       });
     } catch (error) {
       console.error(error);
       setCurrentPlaylistState(null);
       setStatus({
         tone: "error",
-        message: "Failed to load playlist. Check the playlist ID or API key.",
+        message: "Couldn’t load this playlist. Check the link and try again.",
       });
     } finally {
       setIsLoading(false);
     }
   }
-
   function clearLoadedLectures() {
     setCurrentPlaylistState(null);
     setLoadedRawInput("");
     setLecturesVisible(true);
     setStatus({ tone: "muted", message: "" });
   }
-
   function savePlaylist() {
     if (!currentPlaylist) {
-      setStatus({ tone: "error", message: "Load lectures first." });
+      setStatus({ tone: "error", message: "Load a playlist first." });
       return;
     }
-
     const saved = getSavedPlaylists();
     if (
       saved.some(
         (playlist) => playlist.playlistId === currentPlaylist.playlistId,
       )
     ) {
-      setStatus({ tone: "warning", message: "Playlist already saved." });
+      setStatus({
+        tone: "warning",
+        message: "This playlist is already in your library.",
+      });
       return;
     }
-
     const nextSaved = [...saved, currentPlaylist];
     setSavedPlaylists(nextSaved);
     setSavedPlaylistsState(nextSaved);
-    setStatus({ tone: "success", message: "Playlist saved." });
+    setStatus({ tone: "success", message: "Playlist saved to your library." });
   }
-
   function openLecture(index) {
     window.open(`/player?index=${index}`, "_blank", "noopener,noreferrer");
   }
-
   function openSavedPlaylist(playlist) {
     setCurrentPlaylist(playlist);
     window.open("/player?index=0", "_blank", "noopener,noreferrer");
   }
-
   function deleteSavedPlaylist(index) {
-    const nextSaved = savedPlaylists.filter((_, itemIndex) => itemIndex !== index);
+    const nextSaved = savedPlaylists.filter(
+      (_, itemIndex) => itemIndex !== index,
+    );
     setSavedPlaylists(nextSaved);
     setSavedPlaylistsState(nextSaved);
   }
-
   const loadButtonText = isLoading
     ? "Loading"
     : inputMatchesLoaded
       ? lecturesVisible
-        ? "Hide Lectures"
-        : "Show Lectures"
-      : "Load Lectures";
+        ? "Hide lectures"
+        : "Show lectures"
+      : "Load lectures";
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <header className="fixed inset-x-0 top-0 z-20 flex h-14 items-center border-b border-zinc-800 bg-zinc-950/95 px-4 backdrop-blur md:px-8">
-        <div className="text-sm font-semibold text-sky-300">
-          Developed by Aryan
+    <div className="app-shell">
+      <header className="topbar">
+        <a className="brand" href="/" aria-label="Lecturer home">
+          <span className="brand-mark">
+            <Play size={15} fill="currentColor" />
+          </span>
+          <span>Lecturer</span>
+        </a>
+        <div className="topbar-actions">
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+          <button
+            className="icon-button mobile-only"
+            type="button"
+            onClick={() => setIsSidebarOpen(true)}
+            aria-label="Open saved playlists"
+          >
+            <Menu size={19} />
+          </button>
         </div>
       </header>
-
-      <div className="flex h-screen flex-col pt-14 md:flex-row">
+      <div className="home-layout">
         <SavedPlaylists
           playlists={savedPlaylists}
           onOpen={openSavedPlaylist}
           onDelete={deleteSavedPlaylist}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
         />
-
-        <main className="flex min-w-0 flex-1 flex-col overflow-hidden px-4 py-6 md:px-8 md:py-8">
-          <h1 className="text-center text-2xl font-bold tracking-normal text-zinc-50 md:text-3xl">
-            YouTube Playlist Lectures
-          </h1>
-
-          <section className="mx-auto mt-6 w-full max-w-2xl rounded-lg border border-zinc-800 bg-zinc-900 p-5 shadow-panel">
-            <input
-              value={playlistInput}
-              onChange={(event) => setPlaylistInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") handleLoadLectures();
-              }}
-              placeholder="Paste playlist link or playlist ID..."
-              className="h-12 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 text-sm text-zinc-100 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20"
-            />
-
-            <div className="mt-4 flex flex-wrap justify-center gap-3">
+        <main className="home-main">
+          <section className="intro">
+            <p className="eyebrow">YOUR STUDY SPACE</p>
+            <h1>Make every lecture count.</h1>
+            <p>
+              Bring in a YouTube playlist, pick up where you left off, and keep
+              your learning organised.
+            </p>
+          </section>
+          <section className="import-card" aria-labelledby="import-heading">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">NEW PLAYLIST</p>
+                <h2 id="import-heading">Add lectures</h2>
+              </div>
+              <ListVideo size={21} />
+            </div>
+            <label className="input-label" htmlFor="playlist-link">
+              YouTube playlist link or ID
+            </label>
+            <div className="import-form">
+              <input
+                id="playlist-link"
+                value={playlistInput}
+                onChange={(event) => setPlaylistInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") handleLoadLectures();
+                }}
+                placeholder="https://youtube.com/playlist?list=…"
+              />
               <button
                 type="button"
                 onClick={handleLoadLectures}
                 disabled={isLoading}
-                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-70"
+                className="button button-primary"
               >
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 size={17} className="spin" />
                 ) : inputMatchesLoaded && lecturesVisible ? (
-                  <ChevronUp className="h-4 w-4" />
+                  <ChevronUp size={17} />
                 ) : inputMatchesLoaded ? (
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown size={17} />
                 ) : (
-                  <ListVideo className="h-4 w-4" />
+                  <Plus size={17} />
                 )}
                 {loadButtonText}
               </button>
-
-              {currentPlaylist ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={clearLoadedLectures}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-zinc-800 px-4 py-2 text-sm font-semibold text-zinc-100 transition hover:bg-zinc-700"
-                  >
-                    <X className="h-4 w-4" />
-                    Clear
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={savePlaylist}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500"
-                  >
-                    <Save className="h-4 w-4" />
-                    Save Playlist
-                  </button>
-                </>
-              ) : null}
             </div>
-
-            {status.message ? <StatusMessage status={status} /> : null}
+            {currentPlaylist && (
+              <div className="loaded-actions">
+                <button
+                  type="button"
+                  onClick={clearLoadedLectures}
+                  className="button button-ghost"
+                >
+                  <X size={16} />
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={savePlaylist}
+                  className="button button-secondary"
+                >
+                  <Save size={16} />
+                  Save to library
+                </button>
+              </div>
+            )}
+            {status.message && <StatusMessage status={status} />}
           </section>
-
           <LectureResults
             playlist={currentPlaylist}
             visible={lecturesVisible}
@@ -278,113 +328,118 @@ function HomePage() {
   );
 }
 
-function SavedPlaylists({ playlists, onOpen, onDelete }) {
+function SavedPlaylists({ playlists, onOpen, onDelete, isOpen, onClose }) {
   return (
-    <aside className="app-scrollbar flex max-h-72 w-full flex-col overflow-y-auto border-b border-zinc-800 bg-zinc-900/80 p-4 md:h-full md:max-h-none md:w-72 md:border-b-0 md:border-r">
-      <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-normal text-sky-300">
-        <BookmarkPlus className="h-4 w-4" />
-        Saved Playlists
-      </div>
-
-      {playlists.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-zinc-700 px-3 py-4 text-sm text-zinc-400">
-          No saved playlists yet.
-        </p>
-      ) : (
-        <ul className="space-y-3">
-          {playlists.map((playlist, index) => (
-            <SavedPlaylistItem
-              key={playlist.playlistId}
-              playlist={playlist}
-              onOpen={() => onOpen(playlist)}
-              onDelete={() => onDelete(index)}
-            />
-          ))}
-        </ul>
-      )}
-    </aside>
+    <>
+      <button
+        className={cx("sidebar-scrim", isOpen && "is-visible")}
+        onClick={onClose}
+        aria-label="Close saved playlists"
+      />
+      <aside className={cx("library-sidebar", isOpen && "is-open")}>
+        <div className="sidebar-title">
+          <div>
+            <p className="eyebrow">LIBRARY</p>
+            <h2>Saved playlists</h2>
+          </div>
+          <button
+            className="icon-button mobile-only"
+            type="button"
+            onClick={onClose}
+            aria-label="Close saved playlists"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        {playlists.length === 0 ? (
+          <div className="empty-library">
+            <BookmarkPlus size={22} />
+            <p>Your saved playlists will appear here.</p>
+          </div>
+        ) : (
+          <ul className="saved-list">
+            {playlists.map((playlist, index) => (
+              <SavedPlaylistItem
+                key={playlist.playlistId}
+                playlist={playlist}
+                onOpen={() => {
+                  onOpen(playlist);
+                  onClose();
+                }}
+                onDelete={() => onDelete(index)}
+              />
+            ))}
+          </ul>
+        )}
+        <p className="sidebar-footer">Built for focused learning</p>
+      </aside>
+    </>
   );
 }
 
 function SavedPlaylistItem({ playlist, onOpen, onDelete }) {
   const progress = getPlaylistProgress(playlist);
-
   return (
-    <li className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 transition hover:border-sky-700">
-      <div className="truncate text-sm font-semibold text-zinc-100">
-        {playlist.playlistTitle}
-      </div>
-
-      <ProgressMeter percent={progress.percent} className="mt-3" />
-      <div className="mt-2 text-center text-xs text-zinc-400">
-        {progress.percent === 100
-          ? "Completed"
-          : `${progress.percent}% Done`}
-      </div>
-
-      <div className="mt-3 flex gap-2">
-        <button
-          type="button"
-          onClick={onOpen}
-          className="inline-flex min-h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 text-sm font-semibold text-white transition hover:bg-sky-500"
-        >
-          <Play className="h-4 w-4" />
-          Watch
-        </button>
-        <button
-          type="button"
-          onClick={onDelete}
-          aria-label={`Delete ${playlist.playlistTitle}`}
-          className="inline-flex h-9 w-10 items-center justify-center rounded-lg bg-rose-600 text-white transition hover:bg-rose-500"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
+    <li className="saved-item">
+      <button type="button" onClick={onOpen} className="saved-item-main">
+        <span className="saved-item-title">{playlist.playlistTitle}</span>
+        <span className="saved-item-meta">
+          {progress.done} of {progress.total} complete
+        </span>
+        <ProgressMeter percent={progress.percent} />
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="delete-button"
+        aria-label={`Delete ${playlist.playlistTitle}`}
+      >
+        <Trash2 size={16} />
+      </button>
     </li>
   );
 }
-
 function LectureResults({ playlist, visible, onOpen }) {
   if (!playlist || !visible) return null;
-
   return (
-    <section className="app-scrollbar mx-auto mt-6 w-full max-w-5xl flex-1 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-900/60">
-      {playlist.videos.map((video, index) => (
-        <button
-          key={`${video.videoId}-${index}`}
-          type="button"
-          onClick={() => onOpen(index)}
-          className="flex min-h-12 w-full items-center gap-3 border-b border-zinc-800 px-4 py-3 text-left transition last:border-b-0 hover:bg-zinc-800/80"
-        >
-          <span className="min-w-0 flex-1 truncate text-sm text-zinc-100">
-            {index + 1}. {video.title}
-          </span>
-          <span className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-sky-600 text-white">
-            <Play className="h-4 w-4" />
-          </span>
-        </button>
-      ))}
+    <section className="lecture-card" aria-labelledby="lectures-heading">
+      <div className="lecture-card-heading">
+        <div>
+          <p className="eyebrow">PLAYLIST</p>
+          <h2 id="lectures-heading">{playlist.playlistTitle}</h2>
+        </div>
+        <span className="lecture-count">{playlist.videos.length} lectures</span>
+      </div>
+      <div className="lecture-list">
+        {playlist.videos.map((video, index) => (
+          <button
+            key={`${video.videoId}-${index}`}
+            type="button"
+            onClick={() => onOpen(index)}
+            className="lecture-row"
+          >
+            <span className="lecture-number">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span className="lecture-title">{video.title}</span>
+            <span className="play-circle">
+              <Play size={14} fill="currentColor" />
+            </span>
+          </button>
+        ))}
+      </div>
     </section>
   );
 }
-
 function StatusMessage({ status }) {
   return (
-    <p
-      className={cx(
-        "mt-3 text-center text-sm",
-        status.tone === "error" && "text-rose-300",
-        status.tone === "success" && "text-emerald-300",
-        status.tone === "warning" && "text-amber-300",
-        status.tone === "muted" && "text-zinc-300",
-      )}
-    >
+    <p className={cx("status-message", `status-${status.tone}`)} role="status">
       {status.message}
     </p>
   );
 }
 
-function PlayerPage() {
+function PlayerPage({ theme, onToggleTheme }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const playlistData = useMemo(() => getCurrentPlaylist(), []);
@@ -403,17 +458,17 @@ function PlayerPage() {
     tone: "muted",
     message: "",
   });
-
   useEffect(() => {
-    if (videos.length > 0 && currentIndex >= videos.length) {
-      selectVideo(0);
-    }
+    if (videos.length > 0 && currentIndex >= videos.length) selectVideo(0);
   }, [currentIndex, videos.length]);
-
-  if (!playlistData) {
-    return <EmptyPlayerState onBack={() => navigate("/")} />;
-  }
-
+  if (!playlistData)
+    return (
+      <EmptyPlayerState
+        onBack={() => navigate("/")}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+      />
+    );
   const completed = completedData[playlistId] || [];
   const currentVideo = videos[currentIndex] || videos[0];
   const isCurrentComplete = completed.includes(currentIndex);
@@ -421,227 +476,196 @@ function PlayerPage() {
     videos.length === 0
       ? 0
       : Math.round((completed.length / videos.length) * 100);
-
   function selectVideo(index) {
     setCurrentIndex(index);
     setSearchParams({ index: String(index) });
   }
-
   function toggleComplete() {
     const nextCompleted = isCurrentComplete
       ? completed.filter((index) => index !== currentIndex)
       : [...completed, currentIndex];
-
     setCompletedData(setCompletedForPlaylist(playlistId, nextCompleted));
   }
-
   function handleDoubtSubmit() {
     const question = doubtText.trim();
     if (!question) {
-      setDoubtResponse({
-        tone: "error",
-        message: "Please type something.",
-      });
+      setDoubtResponse({ tone: "error", message: "Type a question first." });
       return;
     }
-
     setDoubtResponse({
       tone: "success",
-      message: `Bot: "${question}" received. Real AI needs backend.`,
+      message: `Your question has been noted: “${question}”`,
     });
     setDoubtText("");
   }
-
   function closePlayer() {
     window.close();
     window.setTimeout(() => navigate("/"), 150);
   }
-
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 md:grid md:grid-cols-[minmax(16rem,28%)_1fr]">
-      <aside className="app-scrollbar flex max-h-72 flex-col overflow-y-auto border-b border-zinc-800 bg-zinc-950 md:max-h-screen md:border-b-0 md:border-r">
-        <div className="sticky top-0 z-10 border-b border-zinc-800 bg-zinc-950 px-4 py-4 text-sm font-semibold text-zinc-100">
-          Playlist
+    <div className="player-shell">
+      <aside className="player-sidebar">
+        <div className="player-sidebar-head">
+          <div>
+            <p className="eyebrow">NOW STUDYING</p>
+            <h1>{playlistData.playlistTitle}</h1>
+          </div>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>
-
-        <div>
+        <div className="player-progress">
+          <div className="progress-copy">
+            <span>Course progress</span>
+            <strong>{progressPercent}%</strong>
+          </div>
+          <ProgressMeter percent={progressPercent} />
+        </div>
+        <div className="player-list">
           {videos.map((video, index) => {
             const isActive = index === currentIndex;
             const isDone = completed.includes(index);
-
             return (
               <button
                 key={`${video.videoId}-${index}`}
                 type="button"
                 onClick={() => selectVideo(index)}
-                className={cx(
-                  "flex min-h-12 w-full items-center gap-3 border-b border-zinc-900 px-4 py-3 text-left text-sm transition",
-                  isActive
-                    ? "bg-sky-600 text-white"
-                    : "text-zinc-200 hover:bg-zinc-900",
-                )}
+                className={cx("player-lecture", isActive && "is-active")}
               >
-                <span className="min-w-0 flex-1 truncate">
-                  {index + 1}. {video.title}
-                </span>
-                <Check
-                  className={cx(
-                    "h-4 w-4 flex-none text-emerald-300",
-                    !isDone && "invisible",
+                <span className="player-lecture-number">
+                  {isDone ? (
+                    <Check size={14} />
+                  ) : (
+                    String(index + 1).padStart(2, "0")
                   )}
-                />
+                </span>
+                <span>{video.title}</span>
               </button>
             );
           })}
         </div>
       </aside>
-
-      <main className="app-scrollbar flex min-h-screen min-w-0 flex-col overflow-y-auto bg-[radial-gradient(circle_at_top,#18181b,#09090b_62%)]">
-        <div className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur">
-          <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-3 md:px-5">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-zinc-100 md:text-base">
-                {currentVideo?.title || "Loading..."}
-              </p>
-            </div>
-
-            <div className="flex flex-none items-center gap-2">
-              <button
-                type="button"
-                onClick={toggleComplete}
-                className={cx(
-                  "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition",
-                  isCurrentComplete
-                    ? "bg-zinc-800 text-zinc-100 hover:bg-zinc-700"
-                    : "bg-emerald-600 text-white hover:bg-emerald-500",
-                )}
-              >
-                <Check className="h-4 w-4" />
-                {isCurrentComplete ? "Mark Uncomplete" : "Mark Complete"}
-              </button>
-
-              <button
-                type="button"
-                onClick={closePlayer}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800 text-zinc-100 transition hover:bg-zinc-700"
-                aria-label="Close player"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      <main className="player-main">
+        <header className="player-topbar">
+          <button type="button" className="back-link" onClick={closePlayer}>
+            <ArrowLeft size={17} />
+            Library
+          </button>
+          <div className="player-actions">
+            <button
+              type="button"
+              onClick={toggleComplete}
+              className={cx(
+                "button",
+                isCurrentComplete ? "button-ghost" : "button-secondary",
+              )}
+            >
+              <Check size={16} />
+              {isCurrentComplete ? "Completed" : "Mark complete"}
+            </button>
+            <button
+              type="button"
+              onClick={closePlayer}
+              className="icon-button"
+              aria-label="Close player"
+            >
+              <X size={19} />
+            </button>
           </div>
-
-          <div className="px-4 pb-3 md:px-5">
-            <ProgressMeter percent={progressPercent} />
-            <div className="mt-2 text-center text-xs text-zinc-400">
-              {progressPercent === 100
-                ? "Completed"
-                : `${progressPercent}% Done`}
-            </div>
-          </div>
-        </div>
-
-        <div className="mx-auto w-full max-w-6xl px-4 py-5 md:px-6">
-          <div className="aspect-video overflow-hidden rounded-lg bg-black shadow-panel">
-            {currentVideo ? (
+        </header>
+        <section className="watch-area">
+          <p className="eyebrow">
+            LECTURE {String(currentIndex + 1).padStart(2, "0")}
+          </p>
+          <h2>{currentVideo?.title || "Loading…"}</h2>
+          <div className="video-frame">
+            {currentVideo && (
               <iframe
                 title={currentVideo.title}
                 src={`https://www.youtube.com/embed/${currentVideo.videoId}?autoplay=1&rel=0`}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
-                className="h-full w-full border-0"
               />
-            ) : null}
+            )}
           </div>
-        </div>
-
-        <section className="mx-auto mb-6 w-full max-w-6xl px-4 md:px-6">
+        </section>
+        <section className="doubt-area">
           <button
             type="button"
             onClick={() => setIsDoubtOpen((open) => !open)}
-            className="mx-auto flex min-h-10 items-center justify-center gap-2 rounded-lg bg-zinc-800 px-4 text-sm font-semibold text-zinc-100 transition hover:bg-zinc-700"
+            className="doubt-toggle"
           >
-            <MessageSquare className="h-4 w-4" />
-            {isDoubtOpen ? "Hide Doubt Section" : "Show Doubt Section"}
-            {isDoubtOpen ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
+            <span>
+              <CircleHelp size={18} />
+              <span>
+                <strong>Have a question?</strong>
+                <small>Keep a note while you study</small>
+              </span>
+            </span>
+            {isDoubtOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </button>
-
-          {isDoubtOpen ? (
-            <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-              <h2 className="text-base font-semibold text-zinc-100">
-                Ask Your Doubt
-              </h2>
+          {isDoubtOpen && (
+            <div className="doubt-form">
+              <label htmlFor="doubt">Your question</label>
               <textarea
+                id="doubt"
                 value={doubtText}
                 onChange={(event) => setDoubtText(event.target.value)}
-                placeholder="Type your question here..."
-                className="mt-3 h-24 w-full resize-none rounded-lg border border-zinc-700 bg-zinc-950 p-3 text-sm text-zinc-100 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20"
+                placeholder="What would you like to revisit?"
               />
               <button
                 type="button"
                 onClick={handleDoubtSubmit}
-                className="mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white transition hover:bg-sky-500"
+                className="button button-primary"
               >
-                <Send className="h-4 w-4" />
-                Ask
+                <Send size={16} />
+                Save question
               </button>
-
-              {doubtResponse.message ? (
-                <p
-                  className={cx(
-                    "mt-3 text-sm",
-                    doubtResponse.tone === "error" && "text-rose-300",
-                    doubtResponse.tone === "success" && "text-emerald-300",
-                  )}
-                >
-                  {doubtResponse.message}
-                </p>
-              ) : null}
+              {doubtResponse.message && (
+                <StatusMessage status={doubtResponse} />
+              )}
             </div>
-          ) : null}
+          )}
         </section>
       </main>
     </div>
   );
 }
 
-function EmptyPlayerState({ onBack }) {
+function EmptyPlayerState({ onBack, theme, onToggleTheme }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 text-zinc-100">
-      <div className="w-full max-w-md rounded-lg border border-zinc-800 bg-zinc-900 p-6 text-center">
-        <Home className="mx-auto h-9 w-9 text-sky-300" />
-        <h1 className="mt-4 text-xl font-bold">No playlist loaded</h1>
+    <div className="empty-player">
+      <div className="empty-player-bar">
+        <a className="brand" href="/">
+          <span className="brand-mark">
+            <Play size={15} fill="currentColor" />
+          </span>
+          <span>Lecturer</span>
+        </a>
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+      </div>
+      <div className="empty-card">
+        <Home size={25} />
+        <h1>No playlist loaded</h1>
+        <p>
+          Choose a playlist from your library or add a new one to start
+          studying.
+        </p>
         <button
           type="button"
           onClick={onBack}
-          className="mt-5 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white transition hover:bg-sky-500"
+          className="button button-primary"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Playlists
+          <ArrowLeft size={16} />
+          Back to library
         </button>
       </div>
     </div>
   );
 }
-
 function ProgressMeter({ percent, className = "" }) {
   return (
-    <div
-      className={cx(
-        "h-2 w-full overflow-hidden rounded-full bg-zinc-800",
-        className,
-      )}
-    >
-      <div
-        className="h-full rounded-full bg-emerald-500 transition-all duration-300"
-        style={{ width: `${percent}%` }}
-      />
+    <div className={cx("progress-meter", className)}>
+      <div style={{ width: `${percent}%` }} />
     </div>
   );
 }
-
 export default App;
