@@ -19,6 +19,27 @@ export function extractPlaylistId(input) {
   return raw.length > 10 ? raw : null;
 }
 
+export function extractVideoId(input) {
+  const raw = input.trim();
+  if (!raw) return null;
+
+  try {
+    const url = new URL(raw);
+    const host = url.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") return url.pathname.split("/").filter(Boolean)[0] || null;
+    if (host.endsWith("youtube.com")) {
+      const watchId = url.searchParams.get("v");
+      if (watchId) return watchId;
+      const parts = url.pathname.split("/").filter(Boolean);
+      if (["shorts", "embed", "live"].includes(parts[0])) return parts[1] || null;
+    }
+  } catch {
+    // A bare YouTube video id is also a convenient input format.
+  }
+
+  return /^[A-Za-z0-9_-]{11}$/.test(raw) ? raw : null;
+}
+
 async function requestJson(url) {
   const response = await fetch(url);
   const data = await response.json();
@@ -82,4 +103,21 @@ export async function fetchPlaylistTitle(playlistId) {
   } catch {
     return `Playlist - ${playlistId}`;
   }
+}
+
+export async function fetchVideoDetails(videoId) {
+  const params = new URLSearchParams({
+    part: "snippet",
+    id: videoId,
+    key: API_KEY,
+  });
+  const data = await requestJson(
+    `https://www.googleapis.com/youtube/v3/videos?${params}`,
+  );
+  const snippet = data.items?.[0]?.snippet;
+  if (!snippet) throw new Error("Video was not found");
+  return {
+    title: snippet.title || "Untitled video",
+    channelTitle: snippet.channelTitle || "YouTube Creator",
+  };
 }

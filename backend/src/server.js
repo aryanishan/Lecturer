@@ -21,7 +21,7 @@ const pool = mysql.createPool({
 });
 
 /* ─── helpers ─── */
-const emptyData = () => ({ currentPlaylist: null, savedPlaylists: [], completedVideos: {} });
+const emptyData = () => ({ currentPlaylist: null, savedPlaylists: [], completedVideos: {}, videoProgress: {}, learningLadder: [] });
 
 function sanitizeData(data) {
   const input = data && typeof data === "object" ? data : {};
@@ -31,6 +31,8 @@ function sanitizeData(data) {
     completedVideos: input.completedVideos && typeof input.completedVideos === "object" && !Array.isArray(input.completedVideos) ? input.completedVideos : {},
     favorites: Array.isArray(input.favorites) ? input.favorites.filter(f => typeof f === "string") : [],
     notes: input.notes && typeof input.notes === "object" && !Array.isArray(input.notes) ? input.notes : {},
+    videoProgress: input.videoProgress && typeof input.videoProgress === "object" && !Array.isArray(input.videoProgress) ? input.videoProgress : {},
+    learningLadder: Array.isArray(input.learningLadder) ? [...new Set(input.learningLadder.filter(id => typeof id === "string"))] : [],
   };
 }
 function publicUser(user) { return { id: user.id, email: user.email }; }
