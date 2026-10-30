@@ -9,19 +9,35 @@ async function authenticate(action, credentials) {
 }
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const saved = typeof window !== "undefined" && window.localStorage.getItem("studyshelf-user");
-    return saved ? JSON.parse(saved) : { email: "myteam034221@gmail.com" };
+    if (typeof window === "undefined" || !getAuthToken()) return null;
+    const saved = window.localStorage.getItem("studyshelf-user");
+    try {
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      window.localStorage.removeItem("studyshelf-user");
+      return null;
+    }
   });
-  const [isRestoring, setIsRestoring] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(() =>
+    typeof window !== "undefined" && Boolean(getAuthToken()),
+  );
   useEffect(() => {
-    if (!getAuthToken()) return;
+    if (!getAuthToken()) {
+      window.localStorage.removeItem("studyshelf-user");
+      setUser(null);
+      return;
+    }
     setIsRestoring(true);
     getAccountData()
       .then((data) => {
         hydrateLocalData(data);
-        setUser((prev) => prev || { email: "myteam034221@gmail.com" });
+        setUser((prev) => prev || { email: "Account" });
       })
-      .catch(() => clearAuthToken())
+      .catch(() => {
+        clearAuthToken();
+        window.localStorage.removeItem("studyshelf-user");
+        setUser(null);
+      })
       .finally(() => setIsRestoring(false));
   }, []);
   const value = {

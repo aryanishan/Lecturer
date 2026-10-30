@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   ArrowLeft,
+  ArrowRight,
   BarChart3,
   BookmarkPlus,
   Check,
@@ -8,6 +9,8 @@ import {
   ChevronUp,
   CircleHelp,
   EllipsisVertical,
+  Eye,
+  EyeOff,
   Heart,
   Home,
   Link2,
@@ -16,6 +19,7 @@ import {
   Lock,
   LogOut,
   Menu,
+  Mail,
   Moon,
   NotebookPen,
   Play,
@@ -79,6 +83,33 @@ function formatWatchTime(seconds) {
   return `${minutes}:${remainder}`;
 }
 
+function getCourseLabel(playlist) {
+  const courseText = [
+    playlist?.playlistTitle,
+    ...(playlist?.videos || []).slice(0, 12).map((video) => video?.title),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const courseLabels = [
+    ["DSA", /\bdsa\b|data structures?|algorithms?/],
+    ["DBMS", /\bdbms\b|database management|databases?/],
+    ["SQL", /\bsql\b|mysql|postgresql|oracle sql/],
+    ["OS", /operating systems?|\bos\b/],
+    ["CN", /computer networks?|networking|\bcn\b/],
+    ["OOPS", /object[ -]?oriented|\boops?\b|\bc\+\+\b/],
+    ["WEB DEV", /web development|\bhtml\b|\bcss\b|react\b|angular\b|vue\b/],
+    ["AI / ML", /artificial intelligence|machine learning|deep learning|\bai\b|\bml\b/],
+    ["PYTHON", /\bpython\b/],
+    ["JAVA", /\bjava\b/],
+    ["JS", /javascript|typescript|\bnode\.?js\b/],
+    ["C", /\bc programming\b|\bc language\b/],
+  ];
+
+  return courseLabels.find(([, pattern]) => pattern.test(courseText))?.[0] || "COURSE";
+}
+
 function useTheme() {
   const [theme, setTheme] = useState(() => {
     const stored = window.localStorage.getItem(THEME_KEY);
@@ -109,7 +140,14 @@ function App() {
         <span>Restoring your study space…</span>
       </div>
     );
-  if (!user) return <AuthScreen theme={theme} onToggleTheme={toggleTheme} />;
+  if (!user)
+    return (
+      <Routes>
+        <Route path="/" element={<PublicHome theme={theme} onToggleTheme={toggleTheme} />} />
+        <Route path="/login" element={<AuthScreen theme={theme} onToggleTheme={toggleTheme} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
   return (
     <Routes>
       <Route
@@ -125,14 +163,62 @@ function App() {
   );
 }
 
+function PublicHome({ theme, onToggleTheme }) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="public-home">
+      <header className="public-topbar">
+        <a className="auth-logo" href="/" aria-label="StudyShelf home">
+          <span className="auth-logo-icon"><Play size={17} fill="currentColor" /></span>
+          <span>StudyShelf</span>
+        </a>
+        <p>Turn YouTube into your Study Space.</p>
+        <div className="public-actions">
+          <button type="button" className="auth-theme-toggle" onClick={onToggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
+            {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+          <button type="button" className="public-login" onClick={() => navigate("/login")}>Sign in</button>
+          <button type="button" className="public-signup" onClick={() => navigate("/login?mode=signup")}>Create account <ArrowRight size={16} /></button>
+        </div>
+      </header>
+
+      <main className="public-hero">
+        <section className="public-copy">
+          <div className="auth-steps" aria-hidden="true"><span>Organize</span><span>→ Learn</span><span>→ Track</span><span>→ Grow</span></div>
+          <h1>Your learning,<br /><em>all in one place.</em></h1>
+          <p>Save YouTube playlists, track every lecture, and keep your notes beside the videos that matter.</p>
+          <div className="public-hero-actions">
+            <button type="button" className="public-signup" onClick={() => navigate("/login?mode=signup")}>Start learning free <ArrowRight size={17} /></button>
+            <button type="button" className="public-login" onClick={() => navigate("/login")}>I have an account</button>
+          </div>
+          <small>No credit card. Just bring your playlist.</small>
+        </section>
+
+        <section className="public-preview" aria-label="StudyShelf preview">
+          <div className="preview-tab">MY STUDY SHELF <span>•••</span></div>
+          <div className="preview-head"><span className="preview-play"><Play size={15} fill="currentColor" /></span><div><b>Frontend Development</b><small>42 lectures · 8 notes</small></div><em>68%</em></div>
+          <div className="preview-progress"><span /></div>
+          <div className="preview-lecture is-done"><Check size={16} /> HTML Foundations <span>12:42</span></div>
+          <div className="preview-lecture is-done"><Check size={16} /> CSS Layouts <span>18:30</span></div>
+          <div className="preview-lecture"><Play size={15} fill="currentColor" /> React Components <span>24:15</span></div>
+          <div className="preview-note">✦ &nbsp; Keep notes next to every lecture</div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════
    AUTH SCREEN — Premium split-panel login
    ═══════════════════════════════════════════════ */
 function AuthScreen({ theme, onToggleTheme }) {
   const { login, register } = useAuth();
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [isRegistering, setIsRegistering] = useState(() => searchParams.get("mode") === "signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -151,48 +237,39 @@ function AuthScreen({ theme, onToggleTheme }) {
 
   return (
     <div className="auth-screen">
-      <div className="auth-container">
-        {/* Left brand panel */}
-        <div className="auth-brand">
-          <div className="auth-brand-content">
-            <div className="logo-icon">
-              <Play size={28} fill="#fff" />
-            </div>
-            <h1>
-              Study<span className="brand-dot-pink">Shelf</span>
-            </h1>
-            <p>
-              Your personal study space. Bring in YouTube playlists, track
-              progress, and keep your learning organized.
-            </p>
-            <div className="auth-features">
-              <div className="auth-feature-item item-yellow">
-                <Zap size={16} />
-                <span>No ads, pure focus</span>
-              </div>
-              <div className="auth-feature-item item-green">
-                <Shield size={16} />
-                <span>Free to use, forever</span>
-              </div>
-              <div className="auth-feature-item item-blue">
-                <Users size={16} />
-                <span>Built for learners</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      <header className="auth-topbar">
+        <a className="auth-logo" href="/" aria-label="StudyShelf home">
+          <span className="auth-logo-icon"><Play size={17} fill="currentColor" /></span>
+          <span>StudyShelf</span>
+        </a>
+        <p>Turn YouTube into your Study Space.</p>
+        <button type="button" className="auth-theme-toggle" onClick={onToggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
+          {theme === "dark" ? <Sun size={21} /> : <Moon size={21} />}
+        </button>
+      </header>
 
-        {/* Right form panel */}
+      <main className="auth-layout">
+        <section className="auth-welcome" aria-label="Welcome to StudyShelf">
+          <div className="auth-steps" aria-hidden="true"><span>Organize</span><span>→ Learn</span><span>→ Track</span><span>→ Grow</span></div>
+          <h1><strong>Welcome</strong><em>Back!</em></h1>
+          <div className="auth-welcome-rule"><span /> Continue your learning journey</div>
+          <p>Sign in to access your playlists, notes and progress — all in one place.</p>
+          <div className="auth-note auth-note-left">Learn<br />without<br />distractions</div>
+        </section>
+
         <div className="auth-form-section">
-          <h2>{isRegistering ? "Create your account" : "Welcome back"}</h2>
-          <p className="auth-subtitle">
-            {isRegistering
-              ? "Save your playlists and progress securely across devices."
-              : "Sign in to continue where you left off."}
-          </p>
+          <div className="auth-form-head">
+            <h2>{isRegistering ? "Create account" : "Sign in"}</h2>
+            <span>{isRegistering ? "Have an account?" : "New here?"}</span>
+            <button type="button" className="auth-create-link" onClick={() => { setIsRegistering((value) => !value); setError(""); }}>
+              {isRegistering ? "Sign in" : "Create account"}
+            </button>
+          </div>
           <form className="auth-form" onSubmit={handleSubmit}>
             <div className="form-group">
-              <label htmlFor="email">Email address</label>
+              <label htmlFor="email">Email</label>
+              <div className="auth-input-wrap">
+                <Mail size={17} aria-hidden="true" />
               <input
                 id="email"
                 className="form-input"
@@ -203,13 +280,16 @@ function AuthScreen({ theme, onToggleTheme }) {
                 placeholder="you@example.com"
                 required
               />
+              </div>
             </div>
             <div className="form-group">
               <label htmlFor="password">Password</label>
-              <input
+              <div className="auth-input-wrap">
+                <Lock size={17} aria-hidden="true" />
+                <input
                 id="password"
                 className="form-input"
-                type="password"
+                type={isPasswordVisible ? "text" : "password"}
                 autoComplete={
                   isRegistering ? "new-password" : "current-password"
                 }
@@ -219,6 +299,16 @@ function AuthScreen({ theme, onToggleTheme }) {
                 minLength="8"
                 required
               />
+                <button
+                  className="auth-password-toggle"
+                  type="button"
+                  onClick={() => setIsPasswordVisible((visible) => !visible)}
+                  aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                  title={isPasswordVisible ? "Hide password" : "Show password"}
+                >
+                  {isPasswordVisible ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
             </div>
             {error && <p className="auth-error">{error}</p>}
             <button
@@ -227,25 +317,26 @@ function AuthScreen({ theme, onToggleTheme }) {
               disabled={isSubmitting}
             >
               {isSubmitting && <Loader2 size={16} className="spin" />}
-              {isRegistering ? "Create account" : "Sign in"}
+              {isRegistering ? "Create account" : "Sign in"} <ArrowRight size={18} />
             </button>
           </form>
-          <p className="auth-switch">
-            {isRegistering
-              ? "Already have an account?"
-              : "New here?"}{" "}
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegistering((v) => !v);
-                setError("");
-              }}
-            >
-              {isRegistering ? "Sign in" : "Create an account"}
-            </button>
-          </p>
+          <p className="auth-switch">{isRegistering ? "Your study space is one step away." : "Pick up exactly where you left off."}</p>
         </div>
-      </div>
+        <section className="auth-illustrations" aria-hidden="true">
+          <div className="auth-playlist-card">
+            <b><span className="mini-play"><Play size={12} fill="currentColor" /></span> YouTube Playlist</b>
+            {[1, 2, 3].map((item) => <div className="playlist-line" key={item}><i><Play size={10} fill="currentColor" /></i><span /></div>)}
+          </div>
+          <div className="auth-learning-card">
+            <div className="learning-card-head">Your Learning Space <span>•••</span></div>
+            <div className="learning-row"><i>&lt;/&gt;</i><b>Web Development<small><span className="purple" /></small></b><em>28%</em></div>
+            <div className="learning-row"><i>◉</i><b>Machine Learning<small><span className="green" /></small></b><em>10%</em></div>
+            <div className="learning-row"><i>▥</i><b>DSA<small><span className="pink" /></small></b><em>62%</em></div>
+          </div>
+          <div className="auth-note auth-note-right">Organize<br />track<br />take notes<br />grow</div>
+          <div className="auth-note auth-note-bottom">Make every<br />lecture<br />count ↻</div>
+        </section>
+      </main>
     </div>
   );
 }
@@ -539,7 +630,7 @@ function HomePage({ theme, onToggleTheme }) {
           </button>
           <button type="button" className="topbar-user-badge" onClick={logout} title="Sign out">
             <div className="user-avatar-box">A</div>
-            <span className="user-email-text">{user?.email || "myteam034221@gmail.com"}</span>
+            <span className="user-email-text">{user?.email || "Account"}</span>
             <ChevronDown size={14} className="user-chevron" />
           </button>
         </div>
@@ -920,12 +1011,12 @@ function HomeView({
 /* ─── Playlist Card ─── */
 function PlaylistCard({ playlist, progress, isFav, onOpen, onDelete, onToggleFav, index }) {
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  const courseLabel = getCourseLabel(playlist);
   const cardConfigs = [
     {
       name: "pink",
       bg: "#ff7782",
       badgeCount: "150 videos",
-      centerArt: "DSA",
       author: playlist.channelTitle || "Striver",
       progressColor: "#7c69ef",
       showWaves: true,
@@ -934,7 +1025,6 @@ function PlaylistCard({ playlist, progress, isFav, onOpen, onDelete, onToggleFav
       name: "green",
       bg: "#4ecdc4",
       badgeCount: "120 videos",
-      centerArt: "</>",
       author: playlist.channelTitle || "Apna College",
       progressColor: "#4ecdc4",
       showWaves: false,
@@ -943,7 +1033,6 @@ function PlaylistCard({ playlist, progress, isFav, onOpen, onDelete, onToggleFav
       name: "purple",
       bg: "#b8a9e8",
       badgeCount: "80 videos",
-      centerArt: "BRAIN",
       author: playlist.channelTitle || "freeCodeCamp",
       progressColor: "#ff6b6b",
       showWaves: false,
@@ -1028,18 +1117,9 @@ function PlaylistCard({ playlist, progress, isFav, onOpen, onDelete, onToggleFav
 
         {/* Center Artwork */}
         <div className="card-center-art">
-          {config.centerArt === "DSA" && (
-            <span className="art-dsa">DSA</span>
-          )}
-          {config.centerArt === "</>" && (
-            <span className="art-code">&lt;/&gt;</span>
-          )}
-          {config.centerArt === "BRAIN" && (
-            <svg className="art-brain-svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="1.5">
-              <path d="M12 4v16M8 4a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4M16 4a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4" strokeWidth="2" />
-              <path d="M8 8h1M8 12h2M7 16h2M15 8h1M14 12h2M15 16h2" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
-          )}
+          <span className={cx("card-course-label", courseLabel.length > 5 && "is-long")}>
+            {courseLabel}
+          </span>
         </div>
 
         {/* Contour wavy lines on pink card */}
