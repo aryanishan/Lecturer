@@ -62,7 +62,24 @@ async function requireUser(request, response, next) {
 
 /* ─── Express app ─── */
 const app = express();
-app.use(cors({ origin: clientOrigin }));
+
+const targetOrigin = (process.env.CLIENT_ORIGIN || "http://localhost:5173").trim().replace(/\/+$/, "");
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const cleanOrigin = origin.replace(/\/+$/, "");
+    if (
+      cleanOrigin === targetOrigin ||
+      cleanOrigin.endsWith(".vercel.app") ||
+      cleanOrigin.includes("localhost")
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: "1mb" }));
 
 /* ─── Routes ─── */
