@@ -18,6 +18,9 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD || "",
   waitForConnections: true,
   connectionLimit: 10,
+  ...(process.env.DB_SSL === "true" || process.env.DB_SSL === "1"
+    ? { ssl: { minVersion: "TLSv1.2", rejectUnauthorized: true } }
+    : {}),
 });
 
 /* ─── helpers ─── */
