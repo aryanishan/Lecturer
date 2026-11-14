@@ -121,3 +121,56 @@ export async function fetchVideoDetails(videoId) {
     channelTitle: snippet.channelTitle || "YouTube Creator",
   };
 }
+
+/* ─── Video durations ─── */
+
+function parseISO8601Duration(iso) {
+  const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return 0;
+  const hours = parseInt(match[1] || "0", 10);
+  const minutes = parseInt(match[2] || "0", 10);
+  const seconds = parseInt(match[3] || "0", 10);
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+export function formatDuration(totalSeconds) {
+  if (!totalSeconds || totalSeconds <= 0) return "";
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = Math.floor(totalSeconds % 60);
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+export async function fetchVideoDurations(videoIds) {
+  const durations = {};
+  if (!videoIds || videoIds.length === 0) return durations;
+
+  const uniqueIds = [...new Set(videoIds.filter(Boolean))];
+  const batchSize = 50;
+
+  for (let i = 0; i < uniqueIds.length; i += batchSize) {
+    const batch = uniqueIds.slice(i, i + batchSize);
+    const params = new URLSearchParams({
+      part: "contentDetails",
+      id: batch.join(","),
+      key: API_KEY,
+    });
+
+    try {
+      const data = await requestJson(
+        `https://www.googleapis.com/youtube/v3/videos?${params}`,
+      );
+      if (Array.isArray(data.items)) {
+        for (const item of data.items) {
+          const dur = item.contentDetails?.duration;
+          if (dur) durations[item.id] = parseISO8601Duration(dur);
+        }
+      }
+    } catch {
+      // If a batch fails, skip it — durations are non-critical
+    }
+  }
+
+  return durations;
+}

@@ -50,6 +50,8 @@ import {
   fetchPlaylistTitle,
   fetchPlaylistVideos,
   fetchVideoDetails,
+  fetchVideoDurations,
+  formatDuration,
 } from "./services/youtube";
 import {
   getCompletedDataSafe,
@@ -500,7 +502,29 @@ function HomePage({ theme, onToggleTheme }) {
 
   function openSavedPlaylist(playlist) {
     setCurrentPlaylist(playlist);
-    window.open("/player?index=0", "_blank", "noopener,noreferrer");
+    // Resume from where the user left off
+    const completed = getCompletedDataSafe()[playlist.playlistId] || [];
+    const completedSet = new Set(completed);
+    let resumeIndex = 0;
+    // First: find a partially-watched, non-completed video
+    let foundPartial = false;
+    for (let i = 0; i < playlist.videos.length; i++) {
+      if (!completedSet.has(i)) {
+        const progress = getVideoProgress(playlist.videos[i].videoId);
+        if (progress.watchedSeconds > 0) {
+          resumeIndex = i;
+          foundPartial = true;
+          break;
+        }
+      }
+    }
+    // Fallback: first non-completed video
+    if (!foundPartial) {
+      for (let i = 0; i < playlist.videos.length; i++) {
+        if (!completedSet.has(i)) { resumeIndex = i; break; }
+      }
+    }
+    window.open(`/player?index=${resumeIndex}`, "_blank", "noopener,noreferrer");
   }
 
   function deleteSavedPlaylist(playlistId) {
@@ -1684,7 +1708,24 @@ function PlayerPage({ theme, onToggleTheme }) {
     watchedSeconds: 0,
     duration: 0,
   });
+  const [videoDurations, setVideoDurations] = useState({});
   const activeVideoId = videos[currentIndex]?.videoId;
+
+  useEffect(() => {
+    if (videos.length === 0) return;
+    const videoIds = videos.map((v) => v.videoId);
+    fetchVideoDurations(videoIds).then((durations) => {
+      // Merge with any existing progress durations from localStorage
+      const merged = { ...durations };
+      for (const v of videos) {
+        if (!merged[v.videoId]) {
+          const progress = getVideoProgress(v.videoId);
+          if (progress.duration > 0) merged[v.videoId] = progress.duration;
+        }
+      }
+      setVideoDurations(merged);
+    });
+  }, [videos.length]);
 
   useEffect(() => {
     if (videos.length > 0 && currentIndex >= videos.length) selectVideo(0);
@@ -1818,7 +1859,12 @@ function PlayerPage({ theme, onToggleTheme }) {
                     String(index + 1).padStart(2, "0")
                   )}
                 </span>
-                <span>{video.title}</span>
+                <span className="player-lecture-title">{video.title}</span>
+                {videoDurations[video.videoId] ? (
+                  <span className="player-lecture-duration">
+                    {formatDuration(videoDurations[video.videoId])}
+                  </span>
+                ) : null}
               </button>
             );
           })}
@@ -1972,7 +2018,7 @@ function loadYouTubeApi() {
   return youTubeApiPromise;
 }
 
-function YouTubeStudyPlayer({ video, onProgress }) {
+function YouTubeStudyPlayer({ video, onProgress, startSeconds }) {
   const mountRef = useRef(null);
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
@@ -1998,7 +2044,12 @@ function YouTubeStudyPlayer({ video, onProgress }) {
         if (isDisposed || !mountRef.current) return;
         player = new YT.Player(mountRef.current, {
           videoId: video.videoId,
-          playerVars: { autoplay: 1, rel: 0, playsinline: 1 },
+          playerVars: {
+            autoplay: 1,
+            rel: 0,
+            playsinline: 1,
+            start: startSeconds > 0 ? startSeconds : undefined,
+          },
           events: {
             onReady: reportProgress,
             onStateChange: (event) => {
